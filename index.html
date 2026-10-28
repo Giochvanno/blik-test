@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Блик: тест вспышки</title>
+<title>Блик: тест объектива</title>
 <style>
   :root {
     --bg: #f5f6f8; --panel: #ffffff; --fg: #15181d; --muted: #5d6573;
@@ -23,50 +23,64 @@
   h1 { font-size: 22px; margin: 4px 0 0; }
   p { margin: 0; color: var(--muted); }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; }
-  button { font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--panel); color: var(--fg); cursor: pointer; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, select { font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--fg); }
+  button { cursor: pointer; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:disabled { opacity: .45; cursor: default; }
-  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  video { width: 100%; max-width: 100%; border-radius: 10px; background: #000; aspect-ratio: 4/3; object-fit: cover; }
+  button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  video, canvas.view { width: 100%; max-width: 100%; border-radius: 10px; background: #000; display: block; }
+  video { aspect-ratio: 4/3; object-fit: cover; }
   .status { font-weight: 600; }
   .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
   th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  #log { font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; color: var(--muted);
-    max-height: 180px; overflow-y: auto; margin: 0; }
   ol { margin: 0; padding-left: 20px; color: var(--muted); }
+  #log { font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; color: var(--muted);
+    max-height: 160px; overflow-y: auto; margin: 0; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Блик: тест вспышки</h1>
-  <p>Проверяет, может ли браузер на этом телефоне мигать фонариком и видит ли камера это мигание.</p>
+  <h1>Блик: тест объектива</h1>
+  <p>Мигает фонариком по коду и ищет точки, которые «отвечают» на вспышку. Лампы и экраны на карте гаснут, объективы светятся.</p>
 
   <section class="panel">
     <ol>
-      <li>Откройте страницу в Chrome на телефоне.</li>
-      <li>Приглушите свет в комнате, направьте телефон на белую стену в 30–50 см.</li>
-      <li>Нажмите «Включить камеру», затем «Запустить тест» и держите телефон неподвижно около 20 секунд.</li>
+      <li>Спрячьте ноутбук так, чтобы из щели была видна только веб-камера.</li>
+      <li>Поставьте телефон неподвижно (на книги или штатив) и наведите на щель.</li>
+      <li>Выберите расстояние, нажмите «Записать» и не трогайте телефон 7 секунд.</li>
     </ol>
     <div class="row">
       <button id="btnStart" class="primary">Включить камеру</button>
-      <button id="btnToggle" disabled>Фонарик вкл/выкл</button>
-      <button id="btnTest" disabled>Запустить тест</button>
+      <label for="dist">Расстояние</label>
+      <select id="dist">
+        <option>0,5 м</option><option selected>1 м</option><option>1,5 м</option><option>2 м</option><option>3 м</option>
+      </select>
+      <button id="btnRec" disabled>Записать</button>
     </div>
-    <div id="support" class="status">Камера ещё не включена.</div>
+    <div id="status" class="status">Камера ещё не включена.</div>
+    <div class="bar"><div id="progress"></div></div>
     <video id="video" playsinline muted></video>
+  </section>
+
+  <section class="panel">
+    <strong>Карта отклика на вспышку</strong>
+    <canvas id="map" class="view" width="320" height="240"></canvas>
+    <p id="mapNote">После записи здесь появится кадр с подсвеченными точками. Кружок с номером — самые сильные блики.</p>
   </section>
 
   <section class="panel">
     <strong>Результаты</strong>
     <table>
-      <thead><tr><th>Частота</th><th>Корреляция</th><th>Задержка</th><th>Кадров/с</th><th>Итог</th></tr></thead>
-      <tbody id="results"><tr><td colspan="5">Тест ещё не запускался.</td></tr></tbody>
+      <thead><tr><th>Расст.</th><th>Сила блика</th><th>Задержка</th><th>Кадров</th><th>Итог</th></tr></thead>
+      <tbody id="results"><tr><td colspan="5">Записей пока нет.</td></tr></tbody>
     </table>
-    <p id="verdict"></p>
+    <p>Сила блика показывает, во сколько раз самая яркая точка выделяется на фоне остального кадра. От 8 — уверенно, 4–8 — заметно, ниже 4 — не видно.</p>
   </section>
 
   <section class="panel">
@@ -77,163 +91,203 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+const W = 320, H = 240, N = W * H;
+const RATE_HZ = 4, SECONDS = 6;
 const video = $("video");
-const canvas = document.createElement("canvas");
-canvas.width = 64; canvas.height = 48;
-const ctx = canvas.getContext("2d", { willReadFrequently: true });
+const grab = document.createElement("canvas");
+grab.width = W; grab.height = H;
+const gctx = grab.getContext("2d", { willReadFrequently: true });
+let track = null, firstResult = true;
 
-let track = null, torchOn = false, samples = [], sampling = false;
-
-function log(msg) {
-  const t = new Date().toLocaleTimeString();
-  $("log").textContent = `[${t}] ${msg}\n` + $("log").textContent;
-}
-
-async function setTorch(on) {
-  await track.applyConstraints({ advanced: [{ torch: on }] });
-  torchOn = on;
-}
-
-function brightness() {
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  let s = 0;
-  for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-  return s / (d.length / 4);
-}
-
-function sampleLoop() {
-  if (!sampling) return;
-  const push = (now) => { samples.push({ t: now, b: brightness() }); };
-  if (video.requestVideoFrameCallback) {
-    video.requestVideoFrameCallback((now) => { push(now); sampleLoop(); });
-  } else {
-    requestAnimationFrame((now) => { push(now); sampleLoop(); });
-  }
-}
+function log(msg) { $("log").textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + $("log").textContent; }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function setTorch(on) { await track.applyConstraints({ advanced: [{ torch: on }] }); }
 
 $("btnStart").onclick = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 }, frameRate: { ideal: 30 } },
       audio: false
     });
-    video.srcObject = stream;
-    await video.play();
+    video.srcObject = stream; await video.play();
     track = stream.getVideoTracks()[0];
     const caps = track.getCapabilities ? track.getCapabilities() : {};
-    const settings = track.getSettings();
-    log(`Камера: ${settings.width}x${settings.height}, ${settings.frameRate || "?"} кадров/с`);
-    if ("torch" in caps) {
-      $("support").textContent = "Фонарик доступен из браузера.";
-      $("support").className = "status good";
-      $("btnToggle").disabled = false;
-      $("btnTest").disabled = false;
-      log("torch: поддерживается");
-    } else {
-      $("support").textContent = "Браузер не даёт управлять фонариком на этом телефоне. Для «Блика» понадобится Android-приложение.";
-      $("support").className = "status bad";
-      log("torch: НЕ поддерживается");
+    if (!("torch" in caps)) {
+      $("status").textContent = "Фонарик недоступен из браузера."; $("status").className = "status bad"; return;
     }
-    $("btnStart").disabled = true;
+    // Try to keep exposure stable so the flash does not get "auto-corrected" away.
+    try {
+      if (caps.exposureMode && caps.exposureMode.includes("manual")) {
+        await track.applyConstraints({ advanced: [{ exposureMode: "manual" }] });
+        log("Экспозиция зафиксирована");
+      } else { log("Ручная экспозиция не поддерживается, работаем в авто"); }
+    } catch (e) { log("Экспозиция: " + e.message); }
+    const s = track.getSettings();
+    log(`Камера: ${s.width}x${s.height}, ${s.frameRate || "?"} кадров/с`);
+    $("status").textContent = "Готово. Наведите на щель с веб-камерой и нажмите «Записать».";
+    $("status").className = "status good";
+    $("btnStart").disabled = true; $("btnRec").disabled = false;
   } catch (e) {
-    $("support").textContent = "Не удалось включить камеру: " + e.message + ". Разрешите доступ к камере в Chrome.";
-    $("support").className = "status bad";
-    log("Ошибка камеры: " + e.message);
+    $("status").textContent = "Не удалось включить камеру: " + e.message; $("status").className = "status bad";
   }
 };
-
-$("btnToggle").onclick = async () => {
-  try { await setTorch(!torchOn); log("Фонарик: " + (torchOn ? "вкл" : "выкл")); }
-  catch (e) { log("Ошибка фонарика: " + e.message); }
-};
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function makeCode(n, seed) {
-  // LFSR-like pseudo-random bits with balanced start
-  let x = seed >>> 0 || 1;
-  const bits = [];
-  for (let i = 0; i < n; i++) {
-    x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0;
-    bits.push(x & 1);
-  }
+  let x = seed >>> 0 || 1; const bits = [];
+  for (let i = 0; i < n; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0; bits.push(x & 1); }
   return bits;
+}
+
+function grabLuma() {
+  gctx.drawImage(video, 0, 0, W, H);
+  const d = gctx.getImageData(0, 0, W, H).data;
+  const out = new Uint8Array(N);
+  for (let i = 0, j = 0; j < N; i += 4, j++) out[j] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0;
+  return out;
+}
+
+async function record() {
+  const frames = [], times = [];
+  let recording = true;
+  const loop = () => {
+    if (!recording) return;
+    const push = (now) => { frames.push(grabLuma()); times.push(now); loop(); };
+    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(push);
+    else requestAnimationFrame(push);
+  };
+  const bitMs = 1000 / RATE_HZ;
+  const code = makeCode(RATE_HZ * SECONDS, 777);
+  await setTorch(false); await sleep(400);
+  loop();
+  const t0 = performance.now();
+  for (let i = 0; i < code.length; i++) {
+    const wait = t0 + i * bitMs - performance.now();
+    if (wait > 0) await sleep(wait);
+    $("progress").style.width = `${Math.round((i / code.length) * 100)}%`;
+    try { await setTorch(code[i] === 1); } catch (e) { log("Фонарик: " + e.message); }
+  }
+  await sleep(bitMs + 450);
+  recording = false;
+  await setTorch(false);
+  $("progress").style.width = "100%";
+  return { frames, times, code, t0, bitMs };
 }
 
 function pearson(a, b) {
   const n = a.length; if (n < 3) return 0;
-  let ma = 0, mb = 0;
-  for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
-  ma /= n; mb /= n;
+  let ma = 0, mb = 0; for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; } ma /= n; mb /= n;
   let num = 0, da = 0, db = 0;
   for (let i = 0; i < n; i++) { const x = a[i] - ma, y = b[i] - mb; num += x * y; da += x * x; db += y * y; }
   return da && db ? num / Math.sqrt(da * db) : 0;
 }
 
-async function runRate(rateHz, seconds) {
-  const bitMs = 1000 / rateHz;
-  const code = makeCode(Math.round(rateHz * seconds), 12345 + rateHz);
-  samples = []; sampling = true; sampleLoop();
-  await setTorch(false); await sleep(500);
-  const t0 = performance.now();
-  for (let i = 0; i < code.length; i++) {
-    const target = t0 + i * bitMs;
-    const wait = target - performance.now();
-    if (wait > 0) await sleep(wait);
-    try { await setTorch(code[i] === 1); } catch (e) { log("Ошибка фонарика: " + e.message); }
+function boxBlur(src, r) {
+  // Integral-image box blur
+  const I = new Float64Array((W + 1) * (H + 1));
+  for (let y = 0; y < H; y++) {
+    let row = 0;
+    for (let x = 0; x < W; x++) { row += src[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + row; }
   }
-  await sleep(bitMs + 400);
-  sampling = false;
-  await setTorch(false);
-
-  const durationS = (samples[samples.length - 1].t - samples[0].t) / 1000;
-  const fps = samples.length / Math.max(durationS, 0.001);
-  let best = { r: -1, lag: 0, contrast: 0 };
-  for (let lag = 0; lag <= 600; lag += 10) {
-    const exp = [], obs = [];
-    for (const s of samples) {
-      const idx = Math.floor((s.t - t0 - lag) / bitMs);
-      if (idx >= 0 && idx < code.length) { exp.push(code[idx]); obs.push(s.b); }
-    }
-    const r = pearson(exp, obs);
-    if (r > best.r) {
-      let on = 0, onN = 0, off = 0, offN = 0;
-      exp.forEach((e, i) => { if (e) { on += obs[i]; onN++; } else { off += obs[i]; offN++; } });
-      best = { r, lag, contrast: (onN ? on / onN : 0) - (offN ? off / offN : 0) };
-    }
+  const out = new Float32Array(N);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1), y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+    const s = I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0];
+    out[y * W + x] = s / ((x1 - x0) * (y1 - y0));
   }
-  return { rateHz, fps, ...best };
+  return out;
 }
 
-$("btnTest").onclick = async () => {
-  $("btnTest").disabled = true; $("btnToggle").disabled = true;
-  const body = $("results"); body.innerHTML = "";
-  const rates = [2, 4, 8];
-  const results = [];
-  for (const rate of rates) {
-    log(`Тест ${rate} Гц… держите телефон неподвижно`);
-    try {
-      const res = await runRate(rate, 6);
-      results.push(res);
-      const cls = res.r >= 0.8 ? "good" : res.r >= 0.5 ? "warn" : "bad";
-      const label = res.r >= 0.8 ? "отлично" : res.r >= 0.5 ? "годится" : "плохо";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${rate} Гц</td><td>${res.r.toFixed(2)}</td><td>${res.lag} мс</td><td>${res.fps.toFixed(0)}</td><td class="${cls}">${label}</td>`;
-      body.appendChild(tr);
-      log(`${rate} Гц: r=${res.r.toFixed(2)}, задержка ${res.lag} мс, контраст ${res.contrast.toFixed(1)}`);
-    } catch (e) {
-      log(`Ошибка на ${rate} Гц: ${e.message}`);
-    }
+function analyze({ frames, times, code, t0, bitMs }) {
+  // 1) Find the flash delay from the whole-frame brightness.
+  const g = frames.map((f) => { let s = 0; for (let i = 0; i < N; i += 7) s += f[i]; return s; });
+  let bestLag = 0, bestR = -1;
+  for (let lag = 0; lag <= 700; lag += 10) {
+    const e = [], o = [];
+    times.forEach((t, k) => { const idx = Math.floor((t - t0 - lag) / bitMs); if (idx >= 0 && idx < code.length) { e.push(code[idx]); o.push(g[k]); } });
+    const r = pearson(e, o); if (r > bestR) { bestR = r; bestLag = lag; }
   }
-  const good = results.filter((r) => r.r >= 0.8).map((r) => r.rateHz);
-  const ok = results.filter((r) => r.r >= 0.5).map((r) => r.rateHz);
-  $("verdict").textContent = good.length
-    ? `Мигание надёжно видно до ${Math.max(...good)} Гц. Для «Блика» этого достаточно.`
-    : ok.length
-      ? `Мигание видно, но с шумом (лучше всего на ${Math.max(...ok)} Гц). Работать можно, но медленнее.`
-      : "Камера почти не видит мигание. Проверьте, что фонарик реально мигает, и повторите в более тёмной комнате.";
-  $("btnTest").disabled = false; $("btnToggle").disabled = false;
+  // 2) Per-pixel modulation amplitude: mean(on) - mean(off). Skip frames near bit edges.
+  const onSum = new Float32Array(N), offSum = new Float32Array(N);
+  let onN = 0, offN = 0, offFrame = null;
+  times.forEach((t, k) => {
+    const pos = (t - t0 - bestLag) / bitMs, idx = Math.floor(pos), frac = pos - idx;
+    if (idx < 0 || idx >= code.length || frac < 0.2 || frac > 0.85) return;
+    const f = frames[k];
+    if (code[idx]) { for (let i = 0; i < N; i++) onSum[i] += f[i]; onN++; }
+    else { for (let i = 0; i < N; i++) offSum[i] += f[i]; offN++; offFrame = f; }
+  });
+  if (!onN || !offN) return null;
+  const amp = new Float32Array(N);
+  for (let i = 0; i < N; i++) amp[i] = onSum[i] / onN - offSum[i] / offN;
+  // 3) Spot score: amplitude above its local neighbourhood (removes evenly lit walls).
+  const local = boxBlur(amp, 8);
+  const spot = new Float32Array(N);
+  for (let i = 0; i < N; i++) spot[i] = Math.max(0, amp[i] - local[i]);
+  // Robust noise estimate of the spot map (median absolute deviation over a sample).
+  const sample = []; for (let i = 0; i < N; i += 11) sample.push(spot[i]);
+  sample.sort((a, b) => a - b);
+  const med = sample[sample.length >> 1];
+  const mad = sample.map((v) => Math.abs(v - med)).sort((a, b) => a - b)[sample.length >> 1] || 0.5;
+  const noise = Math.max(1.4826 * mad, 0.5);
+  // 4) Top spots with non-maximum suppression.
+  const work = spot.slice(), peaks = [];
+  for (let p = 0; p < 3; p++) {
+    let m = -1, mi = 0; for (let i = 0; i < N; i++) if (work[i] > m) { m = work[i]; mi = i; }
+    const x = mi % W, y = (mi / W) | 0;
+    peaks.push({ x, y, z: (m - med) / noise, amp: amp[mi] });
+    for (let yy = Math.max(0, y - 12); yy < Math.min(H, y + 13); yy++)
+      for (let xx = Math.max(0, x - 12); xx < Math.min(W, x + 13); xx++) work[yy * W + xx] = 0;
+  }
+  return { bestLag, bestR, spot, med, noise, peaks, offFrame, nFrames: frames.length };
+}
+
+function render(res) {
+  const c = $("map"), ctx = c.getContext("2d");
+  const img = ctx.createImageData(W, H);
+  const zMax = Math.max(8, res.peaks[0].z);
+  for (let i = 0; i < N; i++) {
+    const base = res.offFrame[i] * 0.55;
+    const z = (res.spot[i] - res.med) / res.noise;
+    const t = Math.min(1, Math.max(0, (z - 3) / (zMax - 3)));
+    const j = i * 4;
+    img.data[j] = base + t * (255 - base);
+    img.data[j + 1] = base + t * t * (200 - base);
+    img.data[j + 2] = base * (1 - t);
+    img.data[j + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  ctx.lineWidth = 2; ctx.font = "bold 13px system-ui, sans-serif";
+  res.peaks.forEach((p, k) => {
+    if (p.z < 4) return;
+    ctx.strokeStyle = k === 0 ? "#ff3b30" : "#ffd43b";
+    ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.fillText(String(k + 1), p.x + 12, p.y - 8);
+  });
+}
+
+$("btnRec").onclick = async () => {
+  $("btnRec").disabled = true; $("status").textContent = "Запись… не двигайте телефон."; $("status").className = "status warn";
+  try {
+    const rec = await record();
+    $("status").textContent = "Считаю…";
+    await sleep(30);
+    const res = analyze(rec);
+    if (!res) throw new Error("не хватило кадров с включённой и выключенной вспышкой");
+    render(res);
+    const top = res.peaks[0];
+    const cls = top.z >= 8 ? "good" : top.z >= 4 ? "warn" : "bad";
+    const label = top.z >= 8 ? "уверенно" : top.z >= 4 ? "заметно" : "не видно";
+    if (firstResult) { $("results").innerHTML = ""; firstResult = false; }
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${$("dist").value}</td><td>${top.z.toFixed(1)}×</td><td>${res.bestLag} мс</td><td>${res.nFrames}</td><td class="${cls}">${label}</td>`;
+    $("results").prepend(tr);
+    $("mapNote").textContent = `Точка 1 — самый сильный отклик (${top.z.toFixed(1)}× над фоном). Проверьте, совпадает ли она с объективом веб-камеры.`;
+    log(`${$("dist").value}: z1=${res.peaks.map((p) => p.z.toFixed(1)).join(", ")}, задержка ${res.bestLag} мс, r=${res.bestR.toFixed(2)}, кадров ${res.nFrames}`);
+    $("status").textContent = "Готово. Можно сменить расстояние и записать ещё раз."; $("status").className = "status good";
+  } catch (e) {
+    $("status").textContent = "Ошибка: " + e.message; $("status").className = "status bad"; log("Ошибка: " + e.message);
+  }
+  $("btnRec").disabled = false;
 };
 </script>
 </body>
